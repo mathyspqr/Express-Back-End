@@ -51,13 +51,15 @@ app.get('/mathys', (req, res) => {
   console.log('Requête reçue sur la route /mathys');
   connection.query('SELECT * FROM message_serveur', (err, results) => {
     if (err) {
-      console.error('Erreur SQL lors de la récupération des données de epsiwis :', err);
+      // Log de l'erreur détaillé
+      console.error('Erreur SQL lors de la récupération des données de epsiwis :', err.code, err.sqlMessage);
       return res.status(500).send('Erreur lors de la récupération des données de epsiwis.');
     }
     console.log('Messages récupérés :', results);
     res.json(results);
   });
 });
+
 
 // Démarrer le serveur
 app.listen(port, () => {
