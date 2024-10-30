@@ -27,24 +27,28 @@ const corsMiddleware = cors();
 // Handler de la fonction serverless
 module.exports = async (req, res) => {
   corsMiddleware(req, res, () => {
-    if (req.method === 'GET' && req.url === '/users') {
-      connection.query('SELECT * FROM users', (err, results) => {
-        if (err) {
-          console.error('Erreur lors de la récupération des utilisateurs :', err);
-          return res.status(500).send('Erreur lors de la récupération des utilisateurs.');
-        }
-        res.json(results);
-      });
-    } else if (req.method === 'GET' && req.url === '/mathys') {
-      connection.query('SELECT * FROM message_serveur', (err, results) => {
-        if (err) {
-          console.error('Erreur SQL lors de la récupération des données de epsiwis :', err.code, err.sqlMessage);
-          return res.status(500).send('Erreur lors de la récupération des données de epsiwis.');
-        }
-        res.json(results);
-      });
+    if (req.method === 'GET') {
+      if (req.url === '/users') {
+        connection.query('SELECT * FROM users', (err, results) => {
+          if (err) {
+            console.error('Erreur lors de la récupération des utilisateurs :', err);
+            return res.status(500).send('Erreur lors de la récupération des utilisateurs.');
+          }
+          res.json(results);
+        });
+      } else if (req.url === '/mathys') {
+        connection.query('SELECT * FROM message_serveur', (err, results) => {
+          if (err) {
+            console.error('Erreur SQL lors de la récupération des données :', err.code, err.sqlMessage);
+            return res.status(500).send('Erreur lors de la récupération des données.');
+          }
+          res.json(results);
+        });
+      } else {
+        res.status(404).send('Route non trouvée.');
+      }
     } else {
-      res.status(404).send('Route non trouvée.');
+      res.status(405).send('Méthode non autorisée.');
     }
   });
 };
