@@ -28,9 +28,9 @@ app.use(express.json());
 app.use(cors());
 
 // Route de test
-app.get('/', (req, res) => {
+app.get('/mathys', (req, res) => {
   console.log('Requête reçue sur la route /');
-  res.send('Hello World! Test de connexion à la base de données.');
+  res.send('Hello World! Test de connexion à la base de données.', res);
 });
 
 // Récupérer les utilisateurs
