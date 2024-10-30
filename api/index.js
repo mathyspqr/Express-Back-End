@@ -6,7 +6,8 @@ const app = express();
 const port = process.env.PORT || 3000; // Utiliser le port défini par Vercel
 
 const dbConfig = {
-  host: '192.168.1.123', // Remplacez par l'adresse IP de votre serveur MySQL
+  host: '2.tcp.eu.ngrok.io', // Remplacez par l'adresse IP de votre serveur MySQL
+  port: '16071',
   user: 'mathys',
   password: 'TiTi60340..',
   database: 'mathys',
