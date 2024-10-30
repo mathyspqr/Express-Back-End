@@ -25,10 +25,6 @@ connection.connect((err) => {
 app.use(express.json());
 app.use(cors());
 
-app.get('/', (req, res) => {
-  res.send('Hello World! Test de connexion à la base de données.');
-});
-
 app.get('/users', (req, res) => {
   connection.query('SELECT * FROM users', (err, results) => {
     if (err) {
