@@ -3,7 +3,7 @@ const cors = require('cors');
 
 const dbConfig = {
   host: '2.tcp.eu.ngrok.io',
-  port: '16071',
+  port: '12100',
   user: 'mathys',
   password: 'TiTi60340..',
   database: 'mathys',
@@ -28,15 +28,7 @@ const corsMiddleware = cors();
 module.exports = async (req, res) => {
   corsMiddleware(req, res, () => {
     if (req.method === 'GET') {
-      if (req.url === '/users') {
-        connection.query('SELECT * FROM users', (err, results) => {
-          if (err) {
-            console.error('Erreur lors de la récupération des utilisateurs :', err);
-            return res.status(500).send('Erreur lors de la récupération des utilisateurs.');
-          }
-          res.json(results);
-        });
-      } else if (req.url === '/mathys') {
+  if  (req.url === '/mathys') {
         connection.query('SELECT * FROM message_serveur', (err, results) => {
           if (err) {
             console.error('Erreur SQL lors de la récupération des données :', err.code, err.sqlMessage);
