@@ -9,10 +9,8 @@ const dbConfig = {
   database: 'mathys',
 };
 
-// Créer une connexion à la base de données
 const connection = mysql.createConnection(dbConfig);
 
-// Tester la connexion à la base de données
 connection.connect((err) => {
   if (err) {
     console.error('Erreur de connexion à la base de données :', err);
@@ -36,8 +34,6 @@ module.exports = async (req, res) => {
           }
           res.json(results);
         });
-      } else {
-        res.status(404).send('Route non trouvée.');
       }
     } else {
       res.status(405).send('Méthode non autorisée.');
