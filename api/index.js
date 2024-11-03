@@ -3,7 +3,7 @@ const cors = require('cors');
 
 const dbConfig = {
   host: '2.tcp.eu.ngrok.io',
-  port: '12100',
+  port: '11947',
   user: 'mathys',
   password: 'TiTi60340..',
   database: 'mathys',
