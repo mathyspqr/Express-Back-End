@@ -2,7 +2,7 @@ const mysql = require('mysql');
 const cors = require('cors');
 
 const dbConfig = {
-  host: '2.tcp.eu.ngrok.io',
+  host: '0.tcp.eu.ngrok.io',
   port: '11947',
   user: 'mathys',
   password: 'TiTi60340..',
