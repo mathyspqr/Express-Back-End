@@ -60,20 +60,16 @@ module.exports = async (req, res) => {
       }
     }
     else if (req.method === 'DELETE') {
-      if (req.url === '/delete-message') {
-        let body = '';
-        req.on('data', chunk => {
-          body += chunk.toString();
-        });
-        req.on('end', () => {
-          const message = JSON.parse(body).message;
-          connection.query('DELETE FROM message_serveur WHERE message = ?', [message], (err, results) => {
-            if (err) {
-              console.error('Erreur SQL lors de la suppression des données :', err.code, err.sqlMessage);
-              return res.status(500).send('Erreur lors de la suppression des données.');
-            }
-            res.status(201).send('Message supprimé avec succès.');
-          });
+      const urlParts = req.url.split('/');
+      const id = urlParts[urlParts.length - 1];
+    
+      if (urlParts[1] === 'delete-message' && id) {
+        connection.query('DELETE FROM message_serveur WHERE id = ?', [id], (err, results) => {
+          if (err) {
+            console.error('Erreur SQL lors de la suppression des données :', err.code, err.sqlMessage);
+            return res.status(500).send('Erreur lors de la suppression des données.');
+          }
+          res.status(200).send('Message supprimé avec succès.');
         });
       } else {
         res.status(404).send('Route non trouvée.');
