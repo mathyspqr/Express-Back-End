@@ -60,7 +60,8 @@ module.exports = async (req, res) => {
           });
         } else if (req.url.startsWith('/likes/')) {
           const messageId = req.url.split('/')[2];
-          connection.query('SELECT * FROM likes WHERE message_id = ?', [messageId], (err, results) => {
+          const userId = req.url.split('/')[3];
+          connection.query('SELECT * FROM likes WHERE message_id = ? AND user_id = ?', [messageId,userId], (err, results) => {
             if (err) {
               console.error('Erreur SQL lors de la récupération des likes :', err.code, err.sqlMessage);
               return res.status(500).json({ error: 'Erreur lors de la récupération des likes.' });
