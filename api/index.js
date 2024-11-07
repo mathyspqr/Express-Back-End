@@ -88,7 +88,7 @@ module.exports = async (req, res) => {
             res.status(400).json({ error: 'Données JSON invalides.' });
           }
         });
-      } else if (req.method === 'POST' && req.url.startsWith('/like-message/')) {
+      } else if (req.url.startsWith('/like-message/')) {
         const messageId = req.url.split('/')[2];
         connection.query('UPDATE message_serveur SET likes = likes + 1 WHERE id = ?', [messageId], (err, results) => {
           if (err) {
@@ -96,6 +96,15 @@ module.exports = async (req, res) => {
             return res.status(500).json({ error: 'Erreur lors de l\'incrémentation des likes.' });
           }
           res.status(200).json({ message: 'Like ajouté avec succès.' });
+        });
+      } else if (req.url.startsWith('/unlike-message/')) {
+        const messageId = req.url.split('/')[2];
+        connection.query('UPDATE message_serveur SET likes = likes - 1 WHERE id = ?', [messageId], (err, results) => {
+          if (err) {
+            console.error('Erreur SQL lors de la décrémentation des likes :', err.code, err.sqlMessage);
+            return res.status(500).json({ error: 'Erreur lors de la décrémentation des likes.' });
+          }
+          res.status(200).json({ message: 'Like retiré avec succès.' });
         });
       } else {
         res.status(404).json({ error: 'Route non trouvée.' });
