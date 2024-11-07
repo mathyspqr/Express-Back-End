@@ -36,6 +36,15 @@ module.exports = async (req, res) => {
           }
           res.json(results);
         });
+      } else if (req.url.startsWith('/messages/') && req.url.endsWith('/commentaires')) {
+        const messageId = req.url.split('/')[2];
+        connection.query('SELECT * FROM commentaire WHERE message_id = ?', [messageId], (err, results) => {
+          if (err) {
+            console.error('Erreur SQL lors de la récupération des commentaires :', err.code, err.sqlMessage);
+            return res.status(500).send('Erreur lors de la récupération des commentaires.');
+          }
+          res.json(results);
+        });
       } else {
         res.status(404).send('Route non trouvée.');
       }
@@ -55,11 +64,26 @@ module.exports = async (req, res) => {
             res.status(201).send('Message inséré avec succès.');
           });
         });
+      } else if (req.url.startsWith('/messages/') && req.url.endsWith('/commentaires')) {
+        const messageId = req.url.split('/')[2];
+        let body = '';
+        req.on('data', chunk => {
+          body += chunk.toString();
+        });
+        req.on('end', () => {
+          const commentaire = JSON.parse(body).commentaire;
+          connection.query('INSERT INTO commentaire (message_id, commentaire) VALUES (?, ?)', [messageId, commentaire], (err, results) => {
+            if (err) {
+              console.error('Erreur SQL lors de l\'insertion du commentaire :', err.code, err.sqlMessage);
+              return res.status(500).send('Erreur lors de l\'insertion du commentaire.');
+            }
+            res.status(201).send('Commentaire inséré avec succès.');
+          });
+        });
       } else {
         res.status(404).send('Route non trouvée.');
       }
-    }
-    else if (req.method === 'DELETE') {
+    } else if (req.method === 'DELETE') {
       const urlParts = req.url.split('/');
       const id = urlParts[urlParts.length - 1];
     
@@ -71,11 +95,18 @@ module.exports = async (req, res) => {
           }
           res.status(200).send('Message supprimé avec succès.');
         });
+      } else if (urlParts[1] === 'delete-commentaire' && id) {
+        connection.query('DELETE FROM commentaire WHERE id = ?', [id], (err, results) => {
+          if (err) {
+            console.error('Erreur SQL lors de la suppression du commentaire :', err.code, err.sqlMessage);
+            return res.status(500).send('Erreur lors de la suppression du commentaire.');
+          }
+          res.status(200).send('Commentaire supprimé avec succès.');
+        });
       } else {
         res.status(404).send('Route non trouvée.');
       }
-    }
-    else {
+    } else {
       res.status(404).send('Route non trouvée.');
     }
   });
