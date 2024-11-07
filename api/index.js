@@ -61,12 +61,18 @@ module.exports = async (req, res) => {
           });
         } else if (req.url.startsWith('/likes/')) {
           const messageId = req.url.split('/')[2];
-          connection.query('SELECT * FROM likes WHERE message_id = ?', [messageId], (err, results) => {
+          const userId = req.session.user ? req.session.user.id : null;
+        
+          if (!userId) {
+            return res.status(401).json({ error: 'Utilisateur non connecté' });
+          }
+        
+          connection.query('SELECT * FROM likes WHERE message_id = ? AND user_id = ?', [messageId, userId], (err, results) => {
             if (err) {
               console.error('Erreur SQL lors de la récupération des likes :', err.code, err.sqlMessage);
               return res.status(500).json({ error: 'Erreur lors de la récupération des likes.' });
             }
-            res.json(results);
+            res.json({ liked: results.length > 0 });
           });
         } else if (req.url === '/session') {
           // if (req.session.user) {
