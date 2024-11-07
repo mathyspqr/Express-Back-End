@@ -120,8 +120,9 @@ module.exports = async (req, res) => {
           });
           req.on('end', () => {
             try {
-              const { username, password } = JSON.parse(body);
-              connection.query('INSERT INTO users (username, password) VALUES (?, ?)', [username, password], (err, results) => {
+              const { username, email, password } = JSON.parse(body);
+              const createdAt = new Date();
+              connection.query('INSERT INTO users (username, email, password, created_at) VALUES (?, ?, ?, ?)', [username, email, password, createdAt], (err, results) => {
                 if (err) {
                   console.error('Erreur SQL lors de l\'enregistrement de l\'utilisateur :', err.code, err.sqlMessage);
                   return res.status(500).json({ error: 'Erreur lors de l\'enregistrement de l\'utilisateur.' });
