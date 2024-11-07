@@ -1,6 +1,6 @@
 const mysql = require('mysql');
 const cors = require('cors');
-const session = require('express-session');
+// const session = require('express-session');
 
 const dbConfig = {
   host: '5.tcp.eu.ngrok.io',
@@ -29,18 +29,18 @@ const corsMiddleware = cors({
 });
 
 // Configurer les sessions
-const sessionMiddleware = session({
-  secret: 'mySuperSecretKey12345!@#$', 
-  resave: false,
-  saveUninitialized: true,
-  cookie: { secure: false }
-});
+// const sessionMiddleware = session({
+//   secret: 'mySuperSecretKey12345!@#$', 
+//   resave: false,
+//   saveUninitialized: true,
+//   cookie: { secure: false }
+// });
 
 // Handler de la fonction serverless
 module.exports = async (req, res) => {
   corsMiddleware(req, res, () => {
-    sessionMiddleware(req, res, () => {
-      console.log('Session:', req.session); // Ajoutez ce log pour vérifier l'état de la session
+    // sessionMiddleware(req, res, () => {
+      // console.log('Session:', req.session); // Ajoutez ce log pour vérifier l'état de la session
       if (req.method === 'GET') {
         if (req.url === '/mathys') {
           connection.query('SELECT * FROM message_serveur', (err, results) => {
@@ -69,11 +69,12 @@ module.exports = async (req, res) => {
             res.json(results);
           });
         } else if (req.url === '/session') {
-          if (req.session.user) {
-            res.send(`Utilisateur connecté : ${req.session.user.username}`);
-          } else {
-            res.status(401).json({ error: 'Aucun utilisateur connecté' });
-          }
+          // if (req.session.user) {
+          //   res.send(`Utilisateur connecté : ${req.session.user.username}`);
+          // } else {
+          //   res.status(401).json({ error: 'Aucun utilisateur connecté' });
+          // }
+          res.status(404).json({ error: 'Route non trouvée.' });
         } else {
           res.status(404).json({ error: 'Route non trouvée.' });
         }
@@ -119,11 +120,12 @@ module.exports = async (req, res) => {
           });
         } else if (req.url.startsWith('/like-message/')) {
           const messageId = req.url.split('/')[2];
-          if (!req.session.user) {
-            console.log('Utilisateur non connecté'); // Ajoutez ce log pour vérifier l'état de la session
-            return res.status(401).json({ error: 'Utilisateur non connecté' });
-          }
-          const userId = req.session.user.id;
+          // if (!req.session.user) {
+          //   console.log('Utilisateur non connecté'); // Ajoutez ce log pour vérifier l'état de la session
+          //   return res.status(401).json({ error: 'Utilisateur non connecté' });
+          // }
+          // const userId = req.session.user.id;
+          const userId = 1; // Utilisateur fictif pour le test
           connection.query('INSERT INTO likes (user_id, message_id) VALUES (?, ?)', [userId, messageId], (err, results) => {
             if (err) {
               console.error('Erreur SQL lors de l\'ajout du like :', err.code, err.sqlMessage);
@@ -165,7 +167,7 @@ module.exports = async (req, res) => {
                   return res.status(500).json({ error: 'Erreur lors de la connexion de l\'utilisateur.' });
                 }
                 if (results.length > 0) {
-                  req.session.user = { id: results[0].id, username };
+                  // req.session.user = { id: results[0].id, username };
                   res.status(200).json({ message: 'Connexion réussie.' });
                 } else {
                   res.status(401).json({ error: 'Nom d\'utilisateur ou mot de passe incorrect.' });
@@ -196,6 +198,6 @@ module.exports = async (req, res) => {
       } else {
         res.status(404).json({ error: 'Route non trouvée.' });
       }
-    });
+    // });
   });
 };
