@@ -88,7 +88,7 @@ module.exports = async (req, res) => {
             res.status(400).json({ error: 'Données JSON invalides.' });
           }
         });
-      } else if (req.url.startsWith('/like-message/')) {
+      } else if (req.method === 'POST' && req.url.startsWith('/like-message/')) {
         const messageId = req.url.split('/')[2];
         connection.query('UPDATE message_serveur SET likes = likes + 1 WHERE id = ?', [messageId], (err, results) => {
           if (err) {
