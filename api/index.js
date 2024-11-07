@@ -122,10 +122,11 @@ module.exports = async (req, res) => {
             try {
               const { username, email, password } = JSON.parse(body);
               const createdAt = new Date();
+              console.log('Received registration data:', { username, email, password, createdAt }); // Log received data
               connection.query('INSERT INTO users (username, email, password, created_at) VALUES (?, ?, ?, ?)', [username, email, password, createdAt], (err, results) => {
                 if (err) {
                   console.error('Erreur SQL lors de l\'enregistrement de l\'utilisateur :', err.code, err.sqlMessage);
-                  return res.status(500).json({ error: 'Erreur lors de l\'enregistrement de l\'utilisateur.' });
+                  return res.status(500).json({ error: 'Erreur lors de l\'enregistrement de l\'utilisateur.', details: err.sqlMessage });
                 }
                 res.status(201).json({ message: 'Utilisateur enregistré avec succès.' });
               });
