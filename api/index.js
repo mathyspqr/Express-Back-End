@@ -58,6 +58,15 @@ module.exports = async (req, res) => {
             }
             res.json(results);
           });
+        } else if (req.url.startsWith('/likes/')) {
+          const messageId = req.url.split('/')[2];
+          connection.query('SELECT * FROM likes WHERE message_id = ?', [messageId], (err, results) => {
+            if (err) {
+              console.error('Erreur SQL lors de la récupération des likes :', err.code, err.sqlMessage);
+              return res.status(500).json({ error: 'Erreur lors de la récupération des likes.' });
+            }
+            res.json(results);
+          });
         } else if (req.url === '/session') {
           if (req.session.user) {
             res.send(`Utilisateur connecté : ${req.session.user.username}`);
@@ -109,43 +118,16 @@ module.exports = async (req, res) => {
           });
         } else if (req.url.startsWith('/like-message/')) {
           const messageId = req.url.split('/')[2];
-          const userId = req.session.user.id; // Assurez-vous que l'utilisateur est connecté et que son ID est stocké dans la session
-          connection.query('SELECT * FROM likes WHERE user_id = ? AND message_id = ?', [userId, messageId], (err, results) => {
+          if (!req.session.user) {
+            return res.status(401).json({ error: 'Utilisateur non connecté' });
+          }
+          const userId = req.session.user.id;
+          connection.query('INSERT INTO likes (user_id, message_id) VALUES (?, ?)', [userId, messageId], (err, results) => {
             if (err) {
-              console.error('Erreur SQL lors de la vérification du like :', err.code, err.sqlMessage);
-              return res.status(500).json({ error: 'Erreur lors de la vérification du like.' });
+              console.error('Erreur SQL lors de l\'ajout du like :', err.code, err.sqlMessage);
+              return res.status(500).json({ error: 'Erreur lors de l\'ajout du like.' });
             }
-            if (results.length > 0) {
-              // L'utilisateur a déjà liké ce message, donc on retire le like
-              connection.query('DELETE FROM likes WHERE user_id = ? AND message_id = ?', [userId, messageId], (err, results) => {
-                if (err) {
-                  console.error('Erreur SQL lors de la suppression du like :', err.code, err.sqlMessage);
-                  return res.status(500).json({ error: 'Erreur lors de la suppression du like.' });
-                }
-                connection.query('UPDATE message_serveur SET likes = likes - 1 WHERE id = ?', [messageId], (err, results) => {
-                  if (err) {
-                    console.error('Erreur SQL lors de la décrémentation des likes :', err.code, err.sqlMessage);
-                    return res.status(500).json({ error: 'Erreur lors de la décrémentation des likes.' });
-                  }
-                  res.status(200).json({ message: 'Like retiré avec succès.' });
-                });
-              });
-            } else {
-              // L'utilisateur n'a pas encore liké ce message, donc on ajoute le like
-              connection.query('INSERT INTO likes (user_id, message_id) VALUES (?, ?)', [userId, messageId], (err, results) => {
-                if (err) {
-                  console.error('Erreur SQL lors de l\'ajout du like :', err.code, err.sqlMessage);
-                  return res.status(500).json({ error: 'Erreur lors de l\'ajout du like.' });
-                }
-                connection.query('UPDATE message_serveur SET likes = likes + 1 WHERE id = ?', [messageId], (err, results) => {
-                  if (err) {
-                    console.error('Erreur SQL lors de l\'incrémentation des likes :', err.code, err.sqlMessage);
-                    return res.status(500).json({ error: 'Erreur lors de l\'incrémentation des likes.' });
-                  }
-                  res.status(200).json({ message: 'Like ajouté avec succès.' });
-                });
-              });
-            }
+            res.status(201).json({ message: 'Like ajouté avec succès.' });
           });
         } else if (req.url === '/register') {
           let body = '';
@@ -156,11 +138,10 @@ module.exports = async (req, res) => {
             try {
               const { username, email, password } = JSON.parse(body);
               const createdAt = new Date();
-              console.log('Received registration data:', { username, email, password, createdAt }); // Log received data
               connection.query('INSERT INTO users (username, email, password, created_at) VALUES (?, ?, ?, ?)', [username, email, password, createdAt], (err, results) => {
                 if (err) {
                   console.error('Erreur SQL lors de l\'enregistrement de l\'utilisateur :', err.code, err.sqlMessage);
-                  return res.status(500).json({ error: 'Erreur lors de l\'enregistrement de l\'utilisateur.', details: err.sqlMessage });
+                  return res.status(500).json({ error: 'Erreur lors de l\'enregistrement de l\'utilisateur.' });
                 }
                 res.status(201).json({ message: 'Utilisateur enregistré avec succès.' });
               });
