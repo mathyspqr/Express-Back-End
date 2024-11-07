@@ -90,21 +90,41 @@ module.exports = async (req, res) => {
         });
       } else if (req.url.startsWith('/like-message/')) {
         const messageId = req.url.split('/')[2];
-        connection.query('UPDATE message_serveur SET likes = likes + 1 WHERE id = ?', [messageId], (err, results) => {
+        connection.query('SELECT * FROM message_serveur WHERE id = ?', [messageId], (err, results) => {
           if (err) {
-            console.error('Erreur SQL lors de l\'incrémentation des likes :', err.code, err.sqlMessage);
-            return res.status(500).json({ error: 'Erreur lors de l\'incrémentation des likes.' });
+            console.error('Erreur SQL lors de la récupération des données :', err.code, err.sqlMessage);
+            return res.status(500).json({ error: 'Erreur lors de la récupération des données.' });
           }
-          res.status(200).json({ message: 'Like ajouté avec succès.' });
+          if (results.length === 0) {
+            return res.status(404).json({ error: 'Message non trouvé.' });
+          }
+          const message = results[0];
+          connection.query('UPDATE message_serveur SET likes = likes + 1 WHERE id = ?', [messageId], (err, results) => {
+            if (err) {
+              console.error('Erreur SQL lors de l\'incrémentation des likes :', err.code, err.sqlMessage);
+              return res.status(500).json({ error: 'Erreur lors de l\'incrémentation des likes.' });
+            }
+            res.status(200).json({ message: 'Like ajouté avec succès.' });
+          });
         });
       } else if (req.url.startsWith('/unlike-message/')) {
         const messageId = req.url.split('/')[2];
-        connection.query('UPDATE message_serveur SET likes = likes - 1 WHERE id = ?', [messageId], (err, results) => {
+        connection.query('SELECT * FROM message_serveur WHERE id = ?', [messageId], (err, results) => {
           if (err) {
-            console.error('Erreur SQL lors de la décrémentation des likes :', err.code, err.sqlMessage);
-            return res.status(500).json({ error: 'Erreur lors de la décrémentation des likes.' });
+            console.error('Erreur SQL lors de la récupération des données :', err.code, err.sqlMessage);
+            return res.status(500).json({ error: 'Erreur lors de la récupération des données.' });
           }
-          res.status(200).json({ message: 'Like retiré avec succès.' });
+          if (results.length === 0) {
+            return res.status(404).json({ error: 'Message non trouvé.' });
+          }
+          const message = results[0];
+          connection.query('UPDATE message_serveur SET likes = likes - 1 WHERE id = ?', [messageId], (err, results) => {
+            if (err) {
+              console.error('Erreur SQL lors de la décrémentation des likes :', err.code, err.sqlMessage);
+              return res.status(500).json({ error: 'Erreur lors de la décrémentation des likes.' });
+            }
+            res.status(200).json({ message: 'Like retiré avec succès.' });
+          });
         });
       } else {
         res.status(404).json({ error: 'Route non trouvée.' });
