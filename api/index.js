@@ -32,12 +32,21 @@ module.exports = async (req, res) => {
         connection.query('SELECT * FROM message_serveur', (err, results) => {
           if (err) {
             console.error('Erreur SQL lors de la récupération des données :', err.code, err.sqlMessage);
-            return res.status(500).send('Erreur lors de la récupération des données.');
+            return res.status(500).json({ error: 'Erreur lors de la récupération des données.' });
+          }
+          res.json(results);
+        });
+      } else if (req.url.startsWith('/messages/') && req.url.endsWith('/commentaires')) {
+        const messageId = req.url.split('/')[2];
+        connection.query('SELECT * FROM commentaire WHERE message_id = ?', [messageId], (err, results) => {
+          if (err) {
+            console.error('Erreur SQL lors de la récupération des commentaires :', err.code, err.sqlMessage);
+            return res.status(500).json({ error: 'Erreur lors de la récupération des commentaires.' });
           }
           res.json(results);
         });
       } else {
-        res.status(404).send('Route non trouvée.');
+        res.status(404).json({ error: 'Route non trouvée.' });
       }
     } else if (req.method === 'POST') {
       if (req.url === '/insert-message') {
@@ -46,20 +55,43 @@ module.exports = async (req, res) => {
           body += chunk.toString();
         });
         req.on('end', () => {
-          const message = JSON.parse(body).message;
-          connection.query('INSERT INTO message_serveur (message) VALUES (?)', [message], (err, results) => {
-            if (err) {
-              console.error('Erreur SQL lors de l\'insertion des données :', err.code, err.sqlMessage);
-              return res.status(500).send('Erreur lors de l\'insertion des données.');
-            }
-            res.status(201).send('Message inséré avec succès.');
-          });
+          try {
+            const message = JSON.parse(body).message;
+            connection.query('INSERT INTO message_serveur (message) VALUES (?)', [message], (err, results) => {
+              if (err) {
+                console.error('Erreur SQL lors de l\'insertion des données :', err.code, err.sqlMessage);
+                return res.status(500).json({ error: 'Erreur lors de l\'insertion des données.' });
+              }
+              res.status(201).json({ message: 'Message inséré avec succès.' });
+            });
+          } catch (e) {
+            res.status(400).json({ error: 'Données JSON invalides.' });
+          }
+        });
+      } else if (req.url.startsWith('/messages/') && req.url.endsWith('/commentaires')) {
+        const messageId = req.url.split('/')[2];
+        let body = '';
+        req.on('data', chunk => {
+          body += chunk.toString();
+        });
+        req.on('end', () => {
+          try {
+            const commentaire = JSON.parse(body).commentaire;
+            connection.query('INSERT INTO commentaire (message_id, commentaire) VALUES (?, ?)', [messageId, commentaire], (err, results) => {
+              if (err) {
+                console.error('Erreur SQL lors de l\'insertion du commentaire :', err.code, err.sqlMessage);
+                return res.status(500).json({ error: 'Erreur lors de l\'insertion du commentaire.' });
+              }
+              res.status(201).json({ message: 'Commentaire inséré avec succès.' });
+            });
+          } catch (e) {
+            res.status(400).json({ error: 'Données JSON invalides.' });
+          }
         });
       } else {
-        res.status(404).send('Route non trouvée.');
+        res.status(404).json({ error: 'Route non trouvée.' });
       }
-    }
-    else if (req.method === 'DELETE') {
+    } else if (req.method === 'DELETE') {
       const urlParts = req.url.split('/');
       const id = urlParts[urlParts.length - 1];
     
@@ -67,16 +99,15 @@ module.exports = async (req, res) => {
         connection.query('DELETE FROM message_serveur WHERE id = ?', [id], (err, results) => {
           if (err) {
             console.error('Erreur SQL lors de la suppression des données :', err.code, err.sqlMessage);
-            return res.status(500).send('Erreur lors de la suppression des données.');
+            return res.status(500).json({ error: 'Erreur lors de la suppression des données.' });
           }
-          res.status(200).send('Message supprimé avec succès.');
+          res.status(200).json({ message: 'Message supprimé avec succès.' });
         });
       } else {
-        res.status(404).send('Route non trouvée.');
+        res.status(404).json({ error: 'Route non trouvée.' });
       }
-    }
-    else {
-      res.status(404).send('Route non trouvée.');
+    } else {
+      res.status(404).json({ error: 'Route non trouvée.' });
     }
   });
 };
