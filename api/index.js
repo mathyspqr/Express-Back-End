@@ -1,7 +1,5 @@
 const mysql = require('mysql');
 const cors = require('cors');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
 
 const dbConfig = {
   host: '5.tcp.eu.ngrok.io',
@@ -10,8 +8,6 @@ const dbConfig = {
   password: 'TiTi60340..',
   database: 'mathys',
 };
-
-const secretKey = 'votre_clé_secrète'; // Remplacez par une clé secrète sécurisée
 
 // Créer une connexion à la base de données
 const connection = mysql.createConnection(dbConfig);
@@ -106,16 +102,15 @@ module.exports = async (req, res) => {
         req.on('data', chunk => {
           body += chunk.toString();
         });
-        req.on('end', async () => {
+        req.on('end', () => {
           try {
             const { username, password } = JSON.parse(body);
-            const hashedPassword = await bcrypt.hash(password, 10);
-            connection.query('INSERT INTO users (username, password) VALUES (?, ?)', [username, hashedPassword], (err, results) => {
+            connection.query('INSERT INTO users (username, password) VALUES (?, ?)', [username, password], (err, results) => {
               if (err) {
-                console.error('Erreur SQL lors de l\'inscription :', err.code, err.sqlMessage);
-                return res.status(500).json({ error: 'Erreur lors de l\'inscription.' });
+                console.error('Erreur SQL lors de l\'enregistrement de l\'utilisateur :', err.code, err.sqlMessage);
+                return res.status(500).json({ error: 'Erreur lors de l\'enregistrement de l\'utilisateur.' });
               }
-              res.status(201).json({ message: 'Utilisateur inscrit avec succès.' });
+              res.status(201).json({ message: 'Utilisateur enregistré avec succès.' });
             });
           } catch (e) {
             res.status(400).json({ error: 'Données JSON invalides.' });
@@ -129,31 +124,20 @@ module.exports = async (req, res) => {
         req.on('end', () => {
           try {
             const { username, password } = JSON.parse(body);
-            connection.query('SELECT * FROM users WHERE username = ?', [username], async (err, results) => {
+            connection.query('SELECT * FROM users WHERE username = ? AND password = ?', [username, password], (err, results) => {
               if (err) {
-                console.error('Erreur SQL lors de la connexion :', err.code, err.sqlMessage);
-                return res.status(500).json({ error: 'Erreur lors de la connexion.' });
+                console.error('Erreur SQL lors de la connexion de l\'utilisateur :', err.code, err.sqlMessage);
+                return res.status(500).json({ error: 'Erreur lors de la connexion de l\'utilisateur.' });
               }
-              if (results.length === 0 || !(await bcrypt.compare(password, results[0].password))) {
-                return res.status(401).json({ error: 'Nom d\'utilisateur ou mot de passe incorrect.' });
+              if (results.length > 0) {
+                res.status(200).json({ message: 'Connexion réussie.' });
+              } else {
+                res.status(401).json({ error: 'Nom d\'utilisateur ou mot de passe incorrect.' });
               }
-              const token = jwt.sign({ userId: results[0].id }, secretKey, { expiresIn: '1h' });
-              res.status(200).json({ token });
             });
           } catch (e) {
             res.status(400).json({ error: 'Données JSON invalides.' });
           }
-        });
-      } else if (req.url === '/verify-token') {
-        const token = req.headers['authorization'];
-        if (!token) {
-          return res.status(401).json({ error: 'Token manquant.' });
-        }
-        jwt.verify(token, secretKey, (err, decoded) => {
-          if (err) {
-            return res.status(401).json({ error: 'Token invalide.' });
-          }
-          res.status(200).json({ message: 'Token valide.', userId: decoded.userId });
         });
       } else {
         res.status(404).json({ error: 'Route non trouvée.' });
