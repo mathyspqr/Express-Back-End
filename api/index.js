@@ -23,7 +23,10 @@ connection.connect((err) => {
 });
 
 // Middleware pour gérer CORS
-const corsMiddleware = cors();
+const corsMiddleware = cors({
+  origin: 'http://localhost:3000', // Remplacez par l'URL de votre frontend
+  credentials: true,
+});
 
 // Configurer les sessions
 const sessionMiddleware = session({
@@ -106,12 +109,43 @@ module.exports = async (req, res) => {
           });
         } else if (req.url.startsWith('/like-message/')) {
           const messageId = req.url.split('/')[2];
-          connection.query('UPDATE message_serveur SET likes = likes + 1 WHERE id = ?', [messageId], (err, results) => {
+          const userId = req.session.user.id; // Assurez-vous que l'utilisateur est connecté et que son ID est stocké dans la session
+          connection.query('SELECT * FROM likes WHERE user_id = ? AND message_id = ?', [userId, messageId], (err, results) => {
             if (err) {
-              console.error('Erreur SQL lors de l\'incrémentation des likes :', err.code, err.sqlMessage);
-              return res.status(500).json({ error: 'Erreur lors de l\'incrémentation des likes.' });
+              console.error('Erreur SQL lors de la vérification du like :', err.code, err.sqlMessage);
+              return res.status(500).json({ error: 'Erreur lors de la vérification du like.' });
             }
-            res.status(200).json({ message: 'Like ajouté avec succès.' });
+            if (results.length > 0) {
+              // L'utilisateur a déjà liké ce message, donc on retire le like
+              connection.query('DELETE FROM likes WHERE user_id = ? AND message_id = ?', [userId, messageId], (err, results) => {
+                if (err) {
+                  console.error('Erreur SQL lors de la suppression du like :', err.code, err.sqlMessage);
+                  return res.status(500).json({ error: 'Erreur lors de la suppression du like.' });
+                }
+                connection.query('UPDATE message_serveur SET likes = likes - 1 WHERE id = ?', [messageId], (err, results) => {
+                  if (err) {
+                    console.error('Erreur SQL lors de la décrémentation des likes :', err.code, err.sqlMessage);
+                    return res.status(500).json({ error: 'Erreur lors de la décrémentation des likes.' });
+                  }
+                  res.status(200).json({ message: 'Like retiré avec succès.' });
+                });
+              });
+            } else {
+              // L'utilisateur n'a pas encore liké ce message, donc on ajoute le like
+              connection.query('INSERT INTO likes (user_id, message_id) VALUES (?, ?)', [userId, messageId], (err, results) => {
+                if (err) {
+                  console.error('Erreur SQL lors de l\'ajout du like :', err.code, err.sqlMessage);
+                  return res.status(500).json({ error: 'Erreur lors de l\'ajout du like.' });
+                }
+                connection.query('UPDATE message_serveur SET likes = likes + 1 WHERE id = ?', [messageId], (err, results) => {
+                  if (err) {
+                    console.error('Erreur SQL lors de l\'incrémentation des likes :', err.code, err.sqlMessage);
+                    return res.status(500).json({ error: 'Erreur lors de l\'incrémentation des likes.' });
+                  }
+                  res.status(200).json({ message: 'Like ajouté avec succès.' });
+                });
+              });
+            }
           });
         } else if (req.url === '/register') {
           let body = '';
@@ -148,7 +182,7 @@ module.exports = async (req, res) => {
                   return res.status(500).json({ error: 'Erreur lors de la connexion de l\'utilisateur.' });
                 }
                 if (results.length > 0) {
-                  req.session.user = { username };
+                  req.session.user = { id: results[0].id, username };
                   res.status(200).json({ message: 'Connexion réussie.' });
                 } else {
                   res.status(401).json({ error: 'Nom d\'utilisateur ou mot de passe incorrect.' });
