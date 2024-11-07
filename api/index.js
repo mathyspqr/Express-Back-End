@@ -40,6 +40,7 @@ const sessionMiddleware = session({
 module.exports = async (req, res) => {
   corsMiddleware(req, res, () => {
     sessionMiddleware(req, res, () => {
+      console.log('Session:', req.session); // Ajoutez ce log pour vérifier l'état de la session
       if (req.method === 'GET') {
         if (req.url === '/mathys') {
           connection.query('SELECT * FROM message_serveur', (err, results) => {
@@ -119,6 +120,7 @@ module.exports = async (req, res) => {
         } else if (req.url.startsWith('/like-message/')) {
           const messageId = req.url.split('/')[2];
           if (!req.session.user) {
+            console.log('Utilisateur non connecté'); // Ajoutez ce log pour vérifier l'état de la session
             return res.status(401).json({ error: 'Utilisateur non connecté' });
           }
           const userId = req.session.user.id;
