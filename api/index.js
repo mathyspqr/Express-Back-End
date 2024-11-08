@@ -43,11 +43,7 @@ module.exports = async (req, res) => {
       // console.log('Session:', req.session); // Ajoutez ce log pour vérifier l'état de la session
       if (req.method === 'GET') {
         if (req.url === '/mathys') {
-          connection.query(`
-          SELECT m.*, 
-                 (SELECT COUNT(*) FROM likes WHERE message_id = m.id AND user_id = ?) AS liked 
-          FROM message_serveur m
-        `, (err, results) => {
+          connection.query('SELECT * FROM message_serveur', (err, results) => {
             if (err) {
               console.error('Erreur SQL lors de la récupération des données :', err.code, err.sqlMessage);
               return res.status(500).json({ error: 'Erreur lors de la récupération des données.' });
