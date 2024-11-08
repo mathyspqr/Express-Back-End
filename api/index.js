@@ -54,7 +54,7 @@ module.exports = async (req, res) => {
           connection.query('SELECT * FROM commentaire WHERE message_id = ?', [messageId], (err, results) => {
             if (err) {
               console.error('Erreur SQL lors de la récupération des commentaires :', err.code, err.sqlMessage);
-              return res.status(500).json({ error: 'Erreur lors de la récupération des commentaires.' });
+              return res.status(500).json({ error: 'Erreur lors de la récupération des commentaires' });
             }
             res.json(results);
           });
