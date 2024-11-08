@@ -61,12 +61,12 @@ module.exports = async (req, res) => {
         } else if (req.url.startsWith('/likes/')) {
           const messageId = req.url.split('/')[2];
           const userId = req.url.split('/')[3];
-          connection.query('SELECT * FROM likes WHERE message_id = ? AND user_id = ?', [messageId,userId], (err, results) => {
+          connection.query('SELECT * FROM likes WHERE message_id = ? AND user_id = ?', [messageId, userId], (err, results) => {
             if (err) {
               console.error('Erreur SQL lors de la récupération des likes :', err.code, err.sqlMessage);
               return res.status(500).json({ error: 'Erreur lors de la récupération des likes.' });
             }
-            res.json(results);
+            res.json({ liked: results.length > 0, likes: results.length });
           });
         } else if (req.url === '/session') {
           if (req.session.user) {
@@ -117,18 +117,46 @@ module.exports = async (req, res) => {
               res.status(400).json({ error: 'Données JSON invalides.' });
             }
           });
-        } else if (req.url.startsWith('/like-message/')) {
-          const messageId = req.url.split('/')[2];
-          if (!req.session.user) {
-            return res.status(401).json({ error: 'Utilisateur non connecté' });
-          }
-          const userId = req.session.user.id;
-          connection.query('INSERT INTO likes (user_id, message_id) VALUES (?, ?)', [userId, messageId], (err, results) => {
-            if (err) {
-              console.error('Erreur SQL lors de l\'ajout du like :', err.code, err.sqlMessage);
-              return res.status(500).json({ error: 'Erreur lors de l\'ajout du like.' });
+        } else if (req.url === '/toggle-like') {
+          let body = '';
+          req.on('data', chunk => {
+            body += chunk.toString();
+          });
+          req.on('end', () => {
+            try {
+              const { messageId } = JSON.parse(body);
+              if (!req.session.user) {
+                return res.status(401).json({ error: 'Utilisateur non connecté' });
+              }
+              const userId = req.session.user.id;
+              connection.query('SELECT * FROM likes WHERE message_id = ? AND user_id = ?', [messageId, userId], (err, results) => {
+                if (err) {
+                  console.error('Erreur SQL lors de la vérification des likes :', err.code, err.sqlMessage);
+                  return res.status(500).json({ error: 'Erreur lors de la vérification des likes.' });
+                }
+                if (results.length > 0) {
+                  // Si l'utilisateur a déjà liké, on retire le like
+                  connection.query('DELETE FROM likes WHERE message_id = ? AND user_id = ?', [messageId, userId], (err) => {
+                    if (err) {
+                      console.error('Erreur SQL lors de la suppression du like :', err.code, err.sqlMessage);
+                      return res.status(500).json({ error: 'Erreur lors de la suppression du like.' });
+                    }
+                    res.json({ liked: false });
+                  });
+                } else {
+                  // Sinon, on ajoute un like
+                  connection.query('INSERT INTO likes (message_id, user_id) VALUES (?, ?)', [messageId, userId], (err) => {
+                    if (err) {
+                      console.error('Erreur SQL lors de l\'ajout du like :', err.code, err.sqlMessage);
+                      return res.status(500).json({ error: 'Erreur lors de l\'ajout du like.' });
+                    }
+                    res.json({ liked: true });
+                  });
+                }
+              });
+            } catch (e) {
+              res.status(400).json({ error: 'Données JSON invalides.' });
             }
-            res.status(201).json({ message: 'Like ajouté avec succès.' });
           });
         } else if (req.url === '/register') {
           let body = '';
