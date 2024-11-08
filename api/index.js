@@ -66,7 +66,7 @@ module.exports = async (req, res) => {
               console.error('Erreur SQL lors de la récupération des likes :', err.code, err.sqlMessage);
               return res.status(500).json({ error: 'Erreur lors de la récupération des likes.' });
             }
-            res.json({ liked: results.length > 0, likes: results.length });
+            res.json({ liked: results.length > 0 });
           });
         } else if (req.url === '/session') {
           if (req.session.user) {
