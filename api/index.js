@@ -162,15 +162,15 @@ module.exports = async (req, res) => {
           });
           req.on('end', () => {
             try {
-              const { username, password } = JSON.parse(body);
+              const requestData = JSON.parse(body);
+              const { username, password } = requestData;
               connection.query('SELECT * FROM users WHERE username = ? AND password = ?', [username, password], (err, results) => {
                 if (err) {
                   console.error('Erreur SQL lors de la connexion de l\'utilisateur :', err.code, err.sqlMessage);
                   return res.status(500).json({ error: 'Erreur lors de la connexion de l\'utilisateur.' });
                 }
                 if (results.length > 0) {
-                  // req.session.user = { id: results[0].id, username };
-                  res.status(200).json({ message: 'Connexion réussie.' });
+                  res.status(200).json({ message: 'Connexion réussie.', user: results[0], requestData });
                 } else {
                   res.status(401).json({ error: 'Nom d\'utilisateur ou mot de passe incorrect.' });
                 }
@@ -179,7 +179,7 @@ module.exports = async (req, res) => {
               res.status(400).json({ error: 'Données JSON invalides.' });
             }
           });
-        } else {
+        }else {
           res.status(404).json({ error: 'Route non trouvée.' });
         }
       } else if (req.method === 'DELETE') {
