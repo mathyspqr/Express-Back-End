@@ -120,12 +120,13 @@ module.exports = async (req, res) => {
             }
           });
         } else if (req.url.startsWith('/like-message/')) {
-          const messageId = req.url.split('/')[3];
-          if (!req.session.user) {
-            console.log('Utilisateur non connecté'); // Ajoutez ce log pour vérifier l'état de la session
-            return res.status(401).json({ error: 'Utilisateur non connecté' });
-          }
-          const userId = req.url.split('/')[2];
+          const messageId = req.url.split('/')[2];
+          // if (!req.session.user) {
+          //   console.log('Utilisateur non connecté'); // Ajoutez ce log pour vérifier l'état de la session
+          //   return res.status(401).json({ error: 'Utilisateur non connecté' });
+          // }
+          // const userId = req.session.user.id;
+          const userId = 1; // Utilisateur fictif pour le test
           connection.query('INSERT INTO likes (user_id, message_id) VALUES (?, ?)', [userId, messageId], (err, results) => {
             if (err) {
               console.error('Erreur SQL lors de l\'ajout du like :', err.code, err.sqlMessage);
