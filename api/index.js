@@ -131,7 +131,21 @@ module.exports = async (req, res) => {
             }
             res.status(201).json({ message: 'Like ajouté avec succès.' });
           });
-        } else if (req.url === '/register') {
+        }
+        else if (req.url.startsWith('/unlike-message/')) {
+          const parts = req.url.split('/');
+          const userId = parts[2];
+          const messageId = parts[3];
+        
+          connection.query('DELETE FROM likes WHERE user_id = ? AND message_id = ?', [userId, messageId], (err, results) => {
+            if (err) {
+              console.error('Erreur SQL lors de la suppression du like :', err.code, err.sqlMessage);
+              return res.status(500).json({ error: 'Erreur lors de la suppression du like.' });
+            }
+            res.status(200).json({ message: 'Like supprimé avec succès.' });
+          });
+        }
+        else if (req.url === '/register') {
           let body = '';
           req.on('data', chunk => {
             body += chunk.toString();
