@@ -4,7 +4,7 @@ const cors = require('cors');
 
 const dbConfig = {
   host: '5.tcp.eu.ngrok.io',
-  port: '19144',
+  port: '18440',
   user: 'mathys',
   password: 'TiTi60340..',
   database: 'mathys',
