@@ -3,8 +3,7 @@ const cors = require('cors');
 // const session = require('express-session');
 
 const dbConfig = {
-  host: '5.tcp.eu.ngrok.io',
-  port: '18440',
+  host: 'http://88.179.9.2:8080/phpmyadmin',
   user: 'mathys',
   password: 'TiTi60340..',
   database: 'mathys',
