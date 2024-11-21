@@ -3,11 +3,13 @@ const cors = require('cors');
 // const session = require('express-session');
 
 const dbConfig = {
-  host: 'http://88.179.9.2:8080/phpmyadmin',
+  host: '88.179.9.2', // Adresse IP du serveur
   user: 'mathys',
   password: 'TiTi60340..',
   database: 'mathys',
+  port: 3306, // Port par défaut de MySQL, mais à ajuster si nécessaire
 };
+
 
 // Créer une connexion à la base de données
 const connection = mysql.createConnection(dbConfig);
