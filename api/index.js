@@ -3,11 +3,11 @@ const cors = require('cors');
 // const session = require('express-session');
 
 const dbConfig = {
-  host: '88.179.9.2',    // L'IP publique de ton serveur (celle de ta Freebox)
-  user: 'mathys',        // Nom d'utilisateur de MySQL
-  password: 'TiTi60340.', // Mot de passe de MySQL
-  database: 'mathys',    // Nom de la base de données
-  port: 3306            // Le port MySQL standard
+  host: '88.179.9.2',    
+  user: 'mathys',        
+  password: 'TiTi60340.',
+  database: 'mathys',   
+  port: 3306      
 };
 
 
