@@ -4,6 +4,8 @@ const { createClient } = require("@supabase/supabase-js");
 const corsMiddleware = cors({
   origin: ["http://localhost:3000", "https://fullapp-js.mathys-portfolio.fr"],
   credentials: true,
+  methods: ["GET", "POST", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 });
 
 const supabaseAdmin = createClient(
@@ -22,16 +24,42 @@ async function getUserFromReq(req) {
   return data.user ?? null;
 }
 
+// Fallback JSON parser (utile en serverless si req.body vide)
+function readJsonBody(req) {
+  return new Promise((resolve) => {
+    if (req.body && typeof req.body === "object") return resolve(req.body);
+
+    let body = "";
+    req.on("data", (chunk) => (body += chunk.toString()));
+    req.on("end", () => {
+      try {
+        resolve(JSON.parse(body || "{}"));
+      } catch {
+        resolve({});
+      }
+    });
+  });
+}
+
 module.exports = async (req, res) => {
   corsMiddleware(req, res, async () => {
     try {
+      // ✅ Normalise /api prefix (Vercel)
+      const rawUrl = req.url || "/";
+      const path = rawUrl.startsWith("/api") ? rawUrl.slice(4) || "/" : rawUrl;
+
+      // ✅ Preflight CORS
+      if (req.method === "OPTIONS") {
+        return res.status(200).end();
+      }
+
       // 🔎 Health check
-      if (req.method === "GET" && req.url === "/health") {
+      if (req.method === "GET" && path === "/health") {
         return res.status(200).json({ ok: true });
       }
 
       // ✅ GET /mathys => liste des messages
-      if (req.method === "GET" && req.url === "/mathys") {
+      if (req.method === "GET" && path === "/mathys") {
         const { data, error } = await supabaseAdmin
           .from("messages")
           .select("id, message, user_id, created_at")
@@ -42,11 +70,12 @@ module.exports = async (req, res) => {
       }
 
       // ✅ POST /insert-message { message }
-      if (req.method === "POST" && req.url === "/insert-message") {
+      if (req.method === "POST" && path === "/insert-message") {
         const user = await getUserFromReq(req);
         if (!user) return res.status(401).json({ error: "Non authentifié" });
 
-        const { message } = req.body || {};
+        const body = await readJsonBody(req);
+        const { message } = body || {};
         if (!message) return res.status(400).json({ error: "message requis" });
 
         const { error } = await supabaseAdmin.from("messages").insert({
@@ -59,8 +88,8 @@ module.exports = async (req, res) => {
       }
 
       // ✅ GET /messages/:id/commentaires
-      if (req.method === "GET" && /^\/messages\/\d+\/commentaires$/.test(req.url)) {
-        const messageId = Number(req.url.split("/")[2]);
+      if (req.method === "GET" && /^\/messages\/\d+\/commentaires$/.test(path)) {
+        const messageId = Number(path.split("/")[2]);
 
         const { data, error } = await supabaseAdmin
           .from("comments")
@@ -73,12 +102,13 @@ module.exports = async (req, res) => {
       }
 
       // ✅ POST /messages/:id/commentaires { commentaire }
-      if (req.method === "POST" && /^\/messages\/\d+\/commentaires$/.test(req.url)) {
+      if (req.method === "POST" && /^\/messages\/\d+\/commentaires$/.test(path)) {
         const user = await getUserFromReq(req);
         if (!user) return res.status(401).json({ error: "Non authentifié" });
 
-        const messageId = Number(req.url.split("/")[2]);
-        const { commentaire } = req.body || {};
+        const messageId = Number(path.split("/")[2]);
+        const body = await readJsonBody(req);
+        const { commentaire } = body || {};
         if (!commentaire) return res.status(400).json({ error: "commentaire requis" });
 
         const { error } = await supabaseAdmin.from("comments").insert({
@@ -92,8 +122,8 @@ module.exports = async (req, res) => {
       }
 
       // ✅ GET /likes/:userId (optionnel)
-      if (req.method === "GET" && req.url.startsWith("/likes/")) {
-        const userId = req.url.split("/")[2];
+      if (req.method === "GET" && path.startsWith("/likes/")) {
+        const userId = path.split("/")[2];
 
         const { data, error } = await supabaseAdmin
           .from("likes")
@@ -105,11 +135,11 @@ module.exports = async (req, res) => {
       }
 
       // ✅ POST /like-message/:userId/:messageId  (on ignore userId et on prend celui du token)
-      if (req.method === "POST" && req.url.startsWith("/like-message/")) {
+      if (req.method === "POST" && path.startsWith("/like-message/")) {
         const user = await getUserFromReq(req);
         if (!user) return res.status(401).json({ error: "Non authentifié" });
 
-        const messageId = Number(req.url.split("/")[3]);
+        const messageId = Number(path.split("/")[3]);
 
         const { error } = await supabaseAdmin.from("likes").insert({
           user_id: user.id,
@@ -121,11 +151,11 @@ module.exports = async (req, res) => {
       }
 
       // ✅ POST /unlike-message/:userId/:messageId
-      if (req.method === "POST" && req.url.startsWith("/unlike-message/")) {
+      if (req.method === "POST" && path.startsWith("/unlike-message/")) {
         const user = await getUserFromReq(req);
         if (!user) return res.status(401).json({ error: "Non authentifié" });
 
-        const messageId = Number(req.url.split("/")[3]);
+        const messageId = Number(path.split("/")[3]);
 
         const { error } = await supabaseAdmin
           .from("likes")
@@ -138,11 +168,11 @@ module.exports = async (req, res) => {
       }
 
       // ✅ DELETE /delete-message/:id (supprime seulement ses messages)
-      if (req.method === "DELETE" && req.url.startsWith("/delete-message/")) {
+      if (req.method === "DELETE" && path.startsWith("/delete-message/")) {
         const user = await getUserFromReq(req);
         if (!user) return res.status(401).json({ error: "Non authentifié" });
 
-        const id = Number(req.url.split("/")[2]);
+        const id = Number(path.split("/")[2]);
 
         const { error } = await supabaseAdmin
           .from("messages")
@@ -154,7 +184,7 @@ module.exports = async (req, res) => {
         return res.status(200).json({ message: "Message supprimé avec succès." });
       }
 
-      return res.status(404).json({ error: "Route non trouvée." });
+      return res.status(404).json({ error: "Route non trouvée.", path });
     } catch (e) {
       return res.status(500).json({ error: "Erreur serveur", details: String(e) });
     }
