@@ -16,13 +16,16 @@ const supabaseAdmin = createClient(
 // Récupère l'utilisateur depuis le token Supabase
 async function getUserFromReq(req) {
   const authHeader = req.headers.authorization || "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  const token = authHeader.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : null;
+
   if (!token) return null;
 
-  const { data, error } = await supabaseAdmin.auth.getUser(token);
-  if (error) return null;
+  const { data } = await supabaseAdmin.auth.getUser(token);
   return data.user ?? null;
 }
+
 
 // Fallback JSON parser (utile en serverless si req.body vide)
 function readJsonBody(req) {
