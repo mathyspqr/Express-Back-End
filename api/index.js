@@ -14,17 +14,18 @@ const supabaseAdmin = createClient(
 );
 
 // Récupère l'utilisateur depuis le token Supabase
-async function getUserFromReq(req) {
+function getSupabaseUserClient(req) {
   const authHeader = req.headers.authorization || "";
-  const token = authHeader.startsWith("Bearer ")
-    ? authHeader.slice(7)
-    : null;
-
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
   if (!token) return null;
 
-  const { data } = await supabaseAdmin.auth.getUser(token);
-  return data.user ?? null;
+  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+    global: {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  });
 }
+
 
 
 // Fallback JSON parser (utile en serverless si req.body vide)
@@ -73,22 +74,28 @@ module.exports = async (req, res) => {
       }
 
       // ✅ POST /insert-message { message }
-      if (req.method === "POST" && path === "/insert-message") {
-        const user = await getUserFromReq(req);
-        if (!user) return res.status(401).json({ error: "Non authentifié" });
+ // ✅ POST /insert-message { message }
+if (req.method === "POST" && path === "/insert-message") {
+  const user = await getUserFromReq(req);
+  if (!user) return res.status(401).json({ error: "Non authentifié" });
 
-        const body = await readJsonBody(req);
-        const { message } = body || {};
-        if (!message) return res.status(400).json({ error: "message requis" });
+  const supabaseUser = getSupabaseUserClient(req);
+  if (!supabaseUser) return res.status(401).json({ error: "Token manquant" });
 
-        const { error } = await supabaseAdmin.from("messages").insert({
-          message,
-          user_id: user.id,
-        });
+  const body = await readJsonBody(req);
+  const { message } = body || {};
+  if (!message) return res.status(400).json({ error: "message requis" });
 
-        if (error) return res.status(500).json({ error: error.message });
-        return res.status(201).json({ message: "Message inséré avec succès." });
-      }
+  // ✅ IMPORTANT : insert avec le client user → auth.uid() fonctionne
+  const { error } = await supabaseUser.from("messages").insert({
+    message,
+    user_id: user.id,
+  });
+
+  if (error) return res.status(500).json({ error: error.message });
+  return res.status(201).json({ message: "Message inséré avec succès." });
+}
+
 
       // ✅ GET /messages/:id/commentaires
       if (req.method === "GET" && /^\/messages\/\d+\/commentaires$/.test(path)) {
