@@ -13,6 +13,18 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+async function getUserFromReq(req) {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : null;
+
+  if (!token) return null;
+
+  const { data } = await supabaseAdmin.auth.getUser(token);
+  return data.user ?? null;
+}
+
 // Récupère l'utilisateur depuis le token Supabase
 function getSupabaseUserClient(req) {
   const authHeader = req.headers.authorization || "";
