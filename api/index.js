@@ -214,22 +214,38 @@ if (req.method === "GET" && /^\/messages\/\d+\/commentaires$/.test(path)) {
         return res.status(200).json({ message: "Like supprimé avec succès." });
       }
 
-      // ✅ DELETE /delete-message/:id (supprime seulement ses messages)
-      if (req.method === "DELETE" && path.startsWith("/delete-message/")) {
-        const user = await getUserFromReq(req);
-        if (!user) return res.status(401).json({ error: "Non authentifié" });
+// ✅ DELETE /delete-message/:id (supprime seulement ses messages)
+if (req.method === "DELETE" && path.startsWith("/delete-message/")) {
+  const user = await getUserFromReq(req);
+  if (!user) return res.status(401).json({ error: "Non authentifié" });
 
-        const id = Number(path.split("/")[2]);
+  const id = Number(path.split("/")[2]);
 
-        const { error } = await supabaseAdmin
-          .from("messages")
-          .delete()
-          .eq("id", id)
-          .eq("user_id", user.id);
+  // Vérifier d'abord si le message existe et appartient à l'utilisateur
+  const { data: existingMessage } = await supabaseAdmin
+    .from("messages")
+    .select("user_id")
+    .eq("id", id)
+    .single();
 
-        if (error) return res.status(500).json({ error: error.message });
-        return res.status(200).json({ message: "Message supprimé avec succès." });
-      }
+  if (!existingMessage) {
+    return res.status(404).send("Message introuvable");
+  }
+
+  if (existingMessage.user_id !== user.id) {
+    return res.status(403).send("Vous n'êtes pas le propriétaire de ce message");
+  }
+
+  // Maintenant on peut supprimer
+  const { error } = await supabaseAdmin
+    .from("messages")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) return res.status(500).json({ error: error.message });
+  return res.status(200).json({ message: "Message supprimé avec succès." });
+}
 
       return res.status(404).json({ error: "Route non trouvée.", path });
     } catch (e) {
