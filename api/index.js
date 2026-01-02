@@ -4,7 +4,7 @@ const { createClient } = require("@supabase/supabase-js");
 const corsMiddleware = cors({
   origin: ["http://localhost:3000", "https://chatflow.mathysdev.com"],
   credentials: true,
-  methods: ["GET", "POST", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
   allowedHeaders: ["Content-Type", "Authorization"],
 });
 
@@ -80,7 +80,7 @@ if (req.method === "GET" && path === "/mathys") {
     .from("messages")
     .select(`
       *,
-      profiles!user_id(username, color)
+      profiles!user_id(username, color, avatar_url)
     `)
     .order("created_at", { ascending: true });
 
@@ -89,6 +89,8 @@ if (req.method === "GET" && path === "/mathys") {
   const messagesWithUsername = data.map(msg => ({
     ...msg,
     username: msg.profiles?.username || 'Utilisateur',
+    user_color: msg.profiles?.color || '#3B82F6',
+    avatar_url: msg.profiles?.avatar_url || null,
     image_url: msg.image_url
   }));
   
@@ -124,7 +126,6 @@ if (req.method === "POST" && path === "/insert-message") {
 }
 
 
-      // ✅ GET /messages/:id/commentaires
 // ✅ GET /messages/:id/commentaires
 if (req.method === "GET" && /^\/messages\/\d+\/commentaires$/.test(path)) {
   const messageId = Number(path.split("/")[2]);
@@ -133,7 +134,7 @@ if (req.method === "GET" && /^\/messages\/\d+\/commentaires$/.test(path)) {
     .from("comments")
     .select(`
       *,
-      profiles!user_id(username)
+      profiles!user_id(username, color, avatar_url)
     `)
     .eq("message_id", messageId)
     .order("created_at", { ascending: true });
@@ -142,7 +143,9 @@ if (req.method === "GET" && /^\/messages\/\d+\/commentaires$/.test(path)) {
   
   const commentsWithUsername = data.map(comment => ({
     ...comment,
-    username: comment.profiles?.username || 'Utilisateur'
+    username: comment.profiles?.username || 'Utilisateur',
+    user_color: comment.profiles?.color || '#10B981',
+    avatar_url: comment.profiles?.avatar_url || null
   }));
   
   return res.json(commentsWithUsername);
@@ -245,6 +248,44 @@ if (req.method === "DELETE" && path.startsWith("/delete-message/")) {
 
   if (error) return res.status(500).json({ error: error.message });
   return res.status(200).json({ message: "Message supprimé avec succès." });
+}
+
+// ✅ PUT /messages/:id { message }
+if (req.method === "PUT" && /^\/messages\/\d+$/.test(path)) {
+  const user = await getUserFromReq(req);
+  if (!user) return res.status(401).json({ error: "Non authentifié" });
+
+  const id = Number(path.split("/")[2]);
+  const body = await readJsonBody(req);
+  const { message } = body || {};
+
+  if (!message || !message.trim()) {
+    return res.status(400).json({ error: "message requis" });
+  }
+
+  // Vérifier propriétaire
+  const { data: existing, error: checkError } = await supabaseAdmin
+    .from("messages")
+    .select("user_id")
+    .eq("id", id)
+    .single();
+
+  if (checkError) return res.status(500).json({ error: checkError.message });
+  if (!existing) return res.status(404).json({ error: "Message introuvable" });
+  if (existing.user_id !== user.id) {
+    return res.status(403).json({ error: "Vous n'êtes pas le propriétaire de ce message" });
+  }
+
+  // Mettre à jour le message et flag edited=true
+  const { error } = await supabaseAdmin
+    .from("messages")
+    .update({ message: message.trim(), edited: true })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  return res.status(200).json({ message: "Message mis à jour" });
 }
 
       return res.status(404).json({ error: "Route non trouvée.", path });
