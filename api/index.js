@@ -2,7 +2,7 @@ const cors = require("cors");
 const { createClient } = require("@supabase/supabase-js");
 
 const corsMiddleware = cors({
-  origin: ["http://localhost:3000", "https://fullapp-js.mathys-portfolio.fr"],
+  origin: ["http://localhost:3000", "https://chatflow.mathysdev.com"],
   credentials: true,
   methods: ["GET", "POST", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
