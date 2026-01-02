@@ -74,16 +74,27 @@ module.exports = async (req, res) => {
         return res.status(200).json({ ok: true });
       }
 
-      // ✅ GET /mathys => liste des messages
-      if (req.method === "GET" && path === "/mathys") {
-        const { data, error } = await supabaseAdmin
-          .from("messages")
-          .select("id, message, user_id, created_at")
-          .order("created_at", { ascending: true });
+// ✅ GET /mathys => liste des messages
+if (req.method === "GET" && path === "/mathys") {
+  const { data, error } = await supabaseAdmin
+    .from("messages")
+    .select(`
+      *,
+      profiles!user_id(username, color)
+    `)
+    .order("created_at", { ascending: true });
 
-        if (error) return res.status(500).json({ error: error.message });
-        return res.json(data);
-      }
+  if (error) return res.status(500).json({ error: error.message });
+  
+  const messagesWithUsername = data.map(msg => ({
+    ...msg,
+    username: msg.profiles?.username || 'Utilisateur',
+    image_url: msg.image_url
+  }));
+  
+  return res.json(messagesWithUsername);
+}
+
 
       // ✅ POST /insert-message { message }
  // ✅ POST /insert-message { message }
@@ -95,13 +106,17 @@ if (req.method === "POST" && path === "/insert-message") {
   if (!supabaseUser) return res.status(401).json({ error: "Token manquant" });
 
   const body = await readJsonBody(req);
-  const { message } = body || {};
-  if (!message) return res.status(400).json({ error: "message requis" });
+  const { message, image_url } = body || {};
+  
+  // Message ou image requis (au moins l'un des deux)
+  if (!message && !image_url) {
+    return res.status(400).json({ error: "message ou image_url requis" });
+  }
 
-  // ✅ IMPORTANT : insert avec le client user → auth.uid() fonctionne
   const { error } = await supabaseUser.from("messages").insert({
-    message,
+    message: message || "",
     user_id: user.id,
+    image_url,
   });
 
   if (error) return res.status(500).json({ error: error.message });
@@ -110,18 +125,28 @@ if (req.method === "POST" && path === "/insert-message") {
 
 
       // ✅ GET /messages/:id/commentaires
-      if (req.method === "GET" && /^\/messages\/\d+\/commentaires$/.test(path)) {
-        const messageId = Number(path.split("/")[2]);
+// ✅ GET /messages/:id/commentaires
+if (req.method === "GET" && /^\/messages\/\d+\/commentaires$/.test(path)) {
+  const messageId = Number(path.split("/")[2]);
 
-        const { data, error } = await supabaseAdmin
-          .from("comments")
-          .select("id, message_id, commentaire, user_id, created_at")
-          .eq("message_id", messageId)
-          .order("created_at", { ascending: true });
+  const { data, error } = await supabaseAdmin
+    .from("comments")
+    .select(`
+      *,
+      profiles!user_id(username)
+    `)
+    .eq("message_id", messageId)
+    .order("created_at", { ascending: true });
 
-        if (error) return res.status(500).json({ error: error.message });
-        return res.json(data);
-      }
+  if (error) return res.status(500).json({ error: error.message });
+  
+  const commentsWithUsername = data.map(comment => ({
+    ...comment,
+    username: comment.profiles?.username || 'Utilisateur'
+  }));
+  
+  return res.json(commentsWithUsername);
+}
 
       // ✅ POST /messages/:id/commentaires { commentaire }
       if (req.method === "POST" && /^\/messages\/\d+\/commentaires$/.test(path)) {
